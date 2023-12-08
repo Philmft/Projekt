@@ -6,6 +6,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Scanner;
+import java.util.LinkedHashSet;
+
 
 public class SolutionY {
 
@@ -153,6 +155,7 @@ public class SolutionY {
     class LFUCache implements Cache {
         private Map<Integer, Integer> map;
         private Map<Integer, Integer> freqMap;
+        private Map<Integer, LinkedHashSet<Integer>> freqListMap;
         private int capacity;
         private int minFreq;
         private int hits = 0;
@@ -162,34 +165,49 @@ public class SolutionY {
             this.capacity = capacity;
             this.map = new HashMap<>();
             this.freqMap = new HashMap<>();
+            this.freqListMap = new HashMap<>();
+            this.freqListMap.put(1, new LinkedHashSet<>());
         }
 
         @Override
         public void insert(int key, int value) {
-            if (!map.containsKey(key) && map.size() >= capacity) {
-                for (int k : map.keySet()) {
-                    if (freqMap.get(k) == minFreq) {
-                        map.remove(k);
-                        freqMap.remove(k);
-                        break;
-                    }
-                }
+            if (map.containsKey(key)) {
+                map.put(key, value);
+                get(key);
+                return;
+            }
+            if (map.size() >= capacity) {
+                int evict = freqListMap.get(minFreq).iterator().next();
+                freqListMap.get(minFreq).remove(evict);
+                map.remove(evict);
+                freqMap.remove(evict);
             }
             map.put(key, value);
-            freqMap.put(key, freqMap.getOrDefault(key, 0) + 1);
-            minFreq = Math.min(minFreq, freqMap.get(key));
+            freqMap.put(key, 1);
+            freqListMap.get(1).add(key);
+
+            // Update minFreq whenever inserting a new key
+            minFreq = 1;
         }
 
         @Override
         public int get(int key) {
-            if (map.containsKey(key)) {
-                hits++;
-                freqMap.put(key, freqMap.get(key) + 1);
-                return map.get(key);
-            } else {
+            if (!map.containsKey(key)) {
                 misses++;
                 return -1;
             }
+            int count = freqMap.get(key);
+            freqListMap.get(count).remove(key);
+            if (count == minFreq && freqListMap.get(count).size() == 0) {
+                minFreq++;
+            }
+            if (!freqListMap.containsKey(count + 1)) {
+                freqListMap.put(count + 1, new LinkedHashSet<>());
+            }
+            freqListMap.get(count + 1).add(key);
+            freqMap.put(key, count + 1);
+            hits++;
+            return map.get(key);
         }
 
         @Override
@@ -202,6 +220,7 @@ public class SolutionY {
             return misses;
         }
     }
+
 
     public void execute() {
         Scanner scanner = new Scanner(System.in);

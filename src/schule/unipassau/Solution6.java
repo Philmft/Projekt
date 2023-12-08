@@ -151,60 +151,70 @@ public class Solution6 {
         }
     }
 
-    class LFUCache implements Cache {
-        private Map<Integer, Integer> map;
-        private Map<Integer, Integer> freqMap;
-        private int capacity;
-        private int minFreq;
-        private int hits = 0;
-        private int misses = 0;
 
-        public LFUCache(int capacity) {
-            this.capacity = capacity;
-            this.map = new HashMap<>();
-            this.freqMap = new HashMap<>();
-        }
+        class LFUCache implements Cache {
+            private Map<Integer, Integer> map;
+            private Map<Integer, Integer> freqMap;
+            private Map<Integer, Long> timeMap;
+            private int capacity;
+            private int minFreq;
+            private int hits = 0;
+            private int misses = 0;
 
-        @Override
-        public void insert(int key, int value) {
-            if (!map.containsKey(key) && map.size() >= capacity) {
-                for (int k : map.keySet()) {
-                    if (freqMap.get(k) == minFreq) {
-                        map.remove(k);
-                        freqMap.remove(k);
-                        break;
+            public LFUCache(int capacity) {
+                this.capacity = capacity;
+                this.map = new HashMap<>();
+                this.freqMap = new HashMap<>();
+                this.timeMap = new HashMap<>();
+            }
+
+            @Override
+            public void insert(int key, int value) {
+                if (!map.containsKey(key) && map.size() >= capacity) {
+                    int minKey = -1;
+                    long minTime = Long.MAX_VALUE;
+                    for (int k : map.keySet()) {
+                        if (freqMap.get(k) == minFreq && timeMap.get(k) < minTime) {
+                            minTime = timeMap.get(k);
+                            minKey = k;
+                        }
                     }
+                    map.remove(minKey);
+                    freqMap.remove(minKey);
+                    timeMap.remove(minKey);
+                }
+                map.put(key, value);
+                freqMap.put(key, freqMap.getOrDefault(key, 0) + 1);
+                timeMap.put(key, System.currentTimeMillis());
+                minFreq = Math.min(minFreq, freqMap.get(key));
+            }
+
+            @Override
+            public int get(int key) {
+                if (map.containsKey(key)) {
+                    hits++;
+                    freqMap.put(key, freqMap.get(key) + 1);
+                    timeMap.put(key, System.currentTimeMillis());
+                    return map.get(key);
+                } else {
+                    misses++;
+                    return -1;
                 }
             }
-            map.put(key, value);
-            freqMap.put(key, freqMap.getOrDefault(key, 0) + 1);
-            minFreq = Math.min(minFreq, freqMap.get(key));
-        }
 
-        @Override
-        public int get(int key) {
-            if (map.containsKey(key)) {
-                hits++;
-                freqMap.put(key, freqMap.get(key) + 1);
-                return map.get(key);
-            } else {
-                misses++;
-                return -1;
+            @Override
+            public int getHits() {
+                return hits;
+            }
+
+            @Override
+            public int getMisses() {
+                return misses;
             }
         }
 
-        @Override
-        public int getHits() {
-            return hits;
-        }
 
-        @Override
-        public int getMisses() {
-            return misses;
-        }
-    }
-
-    public void execute() {
+        public void execute() {
         Scanner scanner = new Scanner(System.in);
         int testCases = Integer.parseInt(scanner.nextLine());
 
