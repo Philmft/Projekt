@@ -1,12 +1,12 @@
 package schule.unipassau;
 
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Scanner;
+import java.util.Collections;
 
 public class Solution6 {
 
@@ -20,10 +20,10 @@ public class Solution6 {
         int getMisses();
     }
 
-    class FIFOCache implements Cache {
-        private Queue<Integer> queue;
-        private Map<Integer, Integer> map;
-        private int capacity;
+    static class FIFOCache implements Cache {
+        private final Queue<Integer> queue;
+        private final Map<Integer, Integer> map;
+        private final int capacity;
         private int hits = 0;
         private int misses = 0;
 
@@ -35,7 +35,12 @@ public class Solution6 {
 
         @Override
         public void insert(int key, int value) {
-            if (!map.containsKey(key) && queue.size() >= capacity) {
+            if (queue.size() >= capacity) {
+                if (map.containsKey(key)) {
+                    map.put(key, value);
+                    return;
+                }
+
                 int oldestKey = queue.poll();
                 map.remove(oldestKey);
             }
@@ -65,14 +70,12 @@ public class Solution6 {
         }
     }
 
-    class LRUCache implements Cache {
-        private LinkedHashMap<Integer, Integer> map;
-        private int capacity;
+    static class LRUCache implements Cache {
+        private final LinkedHashMap<Integer, Integer> map;
         private int hits = 0;
         private int misses = 0;
 
         public LRUCache(int capacity) {
-            this.capacity = capacity;
             this.map = new LinkedHashMap<Integer, Integer>(capacity, 0.75f, true) {
                 protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
                     return size() > capacity;
@@ -107,9 +110,9 @@ public class Solution6 {
         }
     }
 
-    class MRUCache implements Cache {
-        private Map<Integer, Integer> map;
-        private int capacity;
+    static class MRUCache implements Cache {
+        private final Map<Integer, Integer> map;
+        private final int capacity;
         private int mostRecentKey;
         private int hits = 0;
         private int misses = 0;
@@ -152,11 +155,11 @@ public class Solution6 {
     }
 
 
-        class LFUCache implements Cache {
-            private Map<Integer, Integer> map;
-            private Map<Integer, Integer> freqMap;
-            private Map<Integer, Long> timeMap;
-            private int capacity;
+        static class LFUCache implements Cache {
+            private final Map<Integer, Integer> map;
+            private final Map<Integer, Integer> freqMap;
+            private final Map<Integer, Long> timeMap;
+            private final int capacity;
             private int minFreq;
             private int hits = 0;
             private int misses = 0;
@@ -170,24 +173,31 @@ public class Solution6 {
 
             @Override
             public void insert(int key, int value) {
-                if (!map.containsKey(key) && map.size() >= capacity) {
-                    int minKey = -1;
-                    long minTime = Long.MAX_VALUE;
-                    for (int k : map.keySet()) {
-                        if (freqMap.get(k) == minFreq && timeMap.get(k) < minTime) {
-                            minTime = timeMap.get(k);
-                            minKey = k;
+                if (map.containsKey(key)) {
+                    map.put(key, value);
+                    freqMap.put(key, freqMap.get(key) + 1);
+                    timeMap.put(key, System.currentTimeMillis());
+                } else {
+                    if (map.size() >= capacity) {
+                        int minKey = -1;
+                        long minTime = Long.MAX_VALUE;
+                        for (int k : map.keySet()) {
+                            if (freqMap.get(k) == minFreq && timeMap.get(k) < minTime) {
+                                minTime = timeMap.get(k);
+                                minKey = k;
+                            }
                         }
+                        map.remove(minKey);
+                        freqMap.remove(minKey);
+                        timeMap.remove(minKey);
                     }
-                    map.remove(minKey);
-                    freqMap.remove(minKey);
-                    timeMap.remove(minKey);
+                    map.put(key, value);
+                    freqMap.put(key, 1);
+                    timeMap.put(key, System.currentTimeMillis());
                 }
-                map.put(key, value);
-                freqMap.put(key, freqMap.getOrDefault(key, 0) + 1);
-                timeMap.put(key, System.currentTimeMillis());
-                minFreq = Math.min(minFreq, freqMap.get(key));
+                minFreq = Collections.min(freqMap.values());
             }
+
 
             @Override
             public int get(int key) {
@@ -255,15 +265,15 @@ public class Solution6 {
                     int key = Integer.parseInt(operationLine[1]);
                     int value = Integer.parseInt(operationLine[2]);
 
-                    for (int c = 0; c < caches.length; c++) {
-                        caches[c].insert(key, value);
+                    for (Cache cach : caches) {
+                        cach.insert(key, value);
                     }
 
                 } else if (operationType == 1) {
                     int key = Integer.parseInt(operationLine[1]);
 
-                    for (int c = 0; c < caches.length; c++) {
-                        int value = caches[c].get(key);
+                    for (Cache cach : caches) {
+                        int value = cach.get(key);
                         System.out.println(value == -1 ? "miss" : value);
                     }
                 }

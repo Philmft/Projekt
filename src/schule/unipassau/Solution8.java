@@ -1,6 +1,4 @@
 package schule.unipassau;
-
-
 import java.util.Scanner;
 
 public class Solution8 {
@@ -25,5 +23,3 @@ public class Solution8 {
         System.out.println(Math.min(dp[n - 1][0], dp[n - 1][1]));
     }
 }
-
-
